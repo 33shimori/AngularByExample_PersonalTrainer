@@ -1,0 +1,12 @@
+extends layout
+
+block content
+	div(class="navbar navbar-default navbar-fix-top top-navbar")
+		div(id="top-nav-container", class="second-top-nav")
+			div(id="top-nav", ng-include="currentRoute.topNav")
+	div(class="container-fluid")
+		div(id="content-container", class="row")
+			div(class="col-md-2 left-nav-bar", ng-if="currentRoute.leftNav")
+				div(id="left-nav", ng-include="currentRoute.leftNav")
+			div(class="col-md-8 col-md-offset-2")
+				div(id="page-content", ng-view)

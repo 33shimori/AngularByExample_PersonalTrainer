@@ -1,0 +1,10 @@
+div(id="workout-list", class="row")
+	h2 Workouts
+	div(ng-repeat="workout in workouts| orderBy:'title'", class="workout title", 
+ng-dblclick="goto(workout)")
+		div(class="title"){{workout.title}}
+		div(class="stats")
+			span(class="duration", title="Duration")
+				span(class="glyphicon glyphicon-time")   - {{workout.totalWorkoutDuration()|secondsToTime}}
+					span(class="length", title="Exercise count", style="margin-left: 10px")
+						span(class="glyphicon glyphicon-th-list")   - {{workout.exercises.length}}

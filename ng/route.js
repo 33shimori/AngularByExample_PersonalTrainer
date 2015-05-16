@@ -2,6 +2,7 @@ angular.module('main').config(function ($routeProvider){
 	$routeProvider
 					.when('/builder', {
 						redirectTo: '/builder/workouts'})
+	
 					.when('/builder/workouts', {
 						templateUrl:'workouts.jade', 
 						controller: 'workoutListCtrl',
@@ -16,24 +17,30 @@ angular.module('main').config(function ($routeProvider){
 					})					
 					
 					.when('/builder/workouts/new' , {
-						templateUrl: 'wourkout.jade',
-						controller: 'workoutDetailsCtrl',
-						leftNav: 'left-nav-main-jade',
-						topNav: 'top-nav-main-jade',
+						templateUrl: 'workout.jade',
+						controller: 'workoutDetailCtrl',
+						leftNav: 'left-nav-exercises.jade',
+						topNav: 'top-nav.jade',
 						resolve:{ 
 							selectedWorkout: function(workoutBuilderSvc){
-								return workoutBuilderSvc.startbuilding();
+								return workoutBuilderSvc.startBuilding();
 							}}
 					})
+					
 					.when('/builder/workouts/:id', {
 						templateUrl: 'workout.jade',
-						controller: 'workoutDetailsCtrl',
-						leftNav: 'left-nav-main-jade',
-						topNav: 'top-nav-main-jade',
+						controller: 'workoutDetailCtrl',
+						leftNav: 'left-nav-exercises.jade',
+						topNav: 'top-nav.jade',
 						resolve:{
 							selectedWorkout:
-								function ($route, workoutBuilderSvc){
-									return workoutBuilderSvc.startBuilding($route.current.params.id);
+								function ($route, workoutBuilderSvc, $location){
+									var workout = 
+										workoutBuilderSvc.startBuilding($route.current.params.id);
+										if(!workout){
+											$location.path('/builder/workouts');
+										}
+										return workout;
 								}}
 					})
 					.when('/builder/exercises/new', {

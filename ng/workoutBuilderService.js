@@ -1,5 +1,5 @@
 angular.module('main')
-				.factory("workoutBuilderSvc", function (workoutSvc, workoutPlan, Exercise){
+				.factory("workoutBuilderSvc", function (workoutSvc, workoutPlan){
 	var service={},
 		buildingWorkout,
 		newWorkout;
@@ -17,7 +17,7 @@ angular.module('main')
 		return buildingWorkout;
 		};
 		
-		service.removeExcercise = function(exercise){
+		service.removeExercise = function(exercise){
 			buildingWorkout.exercises.splice(buildingWorkout.exercises.indexOf(exercise), 1);
 		};
 		
@@ -29,5 +29,13 @@ angular.module('main')
 			var currentIndex = buildingWorkout.exercises.indexOf(exercise);
 			buildingWorkout.exercises.splice(toIndex, 0, buildingWorkout.exercises.splice(currentIndex, 1)[0]);
 		};
+		service.save = function () {
+			var workout = newWorkout?
+			workoutSvc.addWorkout(buildingWorkout):
+							workoutSvc.updateWorkout(buildingWorkout);
+			newWorkout = false;
+			return workout;
+		};
+		
 		return service;
 });

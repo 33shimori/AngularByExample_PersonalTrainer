@@ -1,4 +1,4 @@
 'use strict'
-angular.module('main', ['ngRoute']);
+angular.module('main', ['ngRoute', 'ngMessages']);
 
 

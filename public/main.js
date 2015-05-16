@@ -1,5 +1,5 @@
 'use strict'
-angular.module('main', ['ngRoute']);
+angular.module('main', ['ngRoute', 'ngMessages']);
 
 
 
@@ -193,9 +193,26 @@ angular.module('main')
 		service.getWorkout= function (name){
 			var result = null;
 			angular.forEach(service.getWorkouts(), function (workout){
-				if(workout.name === name)	result = workout
+				if(workout.name === name)	result = angular.copy(workout);
 			});
 			return result;
+		};
+		
+		service.updateWorkout = function (workout){
+			for(var i= 0; i < workouts.length; i++){
+				if(workouts[i].name === workout.name){
+					workouts[i] = workout;
+					break;
+				}
+			}
+			return workout;
+		};
+		
+		service.addWorkout = function(workout){
+			if(workout.name){
+				workouts.push(workout);
+				return workout;
+			}
 		};
 		
 		var init = function () {
@@ -286,15 +303,15 @@ angular.module('main')
 						this.name = args.name
 						this.title = args.title;
 						this.description = args.description;
-						this.restBetweenExercise = args.restBetweenExercise;
+						this.restBetweenExercises = args.restBetweenExercises;
 					};
 					WorkoutPlan.prototype.totalDuration = function (){
 						if (this.exercises.length == 0) return 0;
 						var total = 0;
 						angular.forEach(this.exercises, function (exercise){
-							total = total + (exercise.duratio ? exercise.duration : 0);
+							total = total + (exercise.duration ? exercise.duration : 0);
 						});
-						return (this.restBetweenExercise ? this.restBetweenExercise : 0) *
+						return (this.restBetweenExercises ? this.restBetweenExercises : 0) *
 										(this.exercises.length -1) + total;
 					}
 					return WorkoutPlan
@@ -313,6 +330,7 @@ angular.module('main').config(function ($routeProvider){
 	$routeProvider
 					.when('/builder', {
 						redirectTo: '/builder/workouts'})
+	
 					.when('/builder/workouts', {
 						templateUrl:'workouts.jade', 
 						controller: 'workoutListCtrl',
@@ -327,24 +345,30 @@ angular.module('main').config(function ($routeProvider){
 					})					
 					
 					.when('/builder/workouts/new' , {
-						templateUrl: 'wourkout.jade',
-						controller: 'workoutDetailsCtrl',
-						leftNav: 'left-nav-main-jade',
-						topNav: 'top-nav-main-jade',
+						templateUrl: 'workout.jade',
+						controller: 'workoutDetailCtrl',
+						leftNav: 'left-nav-exercises.jade',
+						topNav: 'top-nav.jade',
 						resolve:{ 
 							selectedWorkout: function(workoutBuilderSvc){
-								return workoutBuilderSvc.startbuilding();
+								return workoutBuilderSvc.startBuilding();
 							}}
 					})
+					
 					.when('/builder/workouts/:id', {
 						templateUrl: 'workout.jade',
-						controller: 'workoutDetailsCtrl',
-						leftNav: 'left-nav-main-jade',
-						topNav: 'top-nav-main-jade',
+						controller: 'workoutDetailCtrl',
+						leftNav: 'left-nav-exercises.jade',
+						topNav: 'top-nav.jade',
 						resolve:{
 							selectedWorkout:
-								function ($route, workoutBuilderSvc){
-									return workoutBuilderSvc.startBuilding($route.current.params.id);
+								function ($route, workoutBuilderSvc, $location){
+									var workout = 
+										workoutBuilderSvc.startBuilding($route.current.params.id);
+										if(!workout){
+											$location.path('/builder/workouts');
+										}
+										return workout;
 								}}
 					})
 					.when('/builder/exercises/new', {
@@ -361,7 +385,7 @@ angular.module('main').config(function ($routeProvider){
 
 
 angular.module('main')
-				.factory("workoutBuilderSvc", function (workoutSvc, workoutPlan, Exercise){
+				.factory("workoutBuilderSvc", function (workoutSvc, workoutPlan){
 	var service={},
 		buildingWorkout,
 		newWorkout;
@@ -379,7 +403,7 @@ angular.module('main')
 		return buildingWorkout;
 		};
 		
-		service.removeExcercise = function(exercise){
+		service.removeExercise = function(exercise){
 			buildingWorkout.exercises.splice(buildingWorkout.exercises.indexOf(exercise), 1);
 		};
 		
@@ -391,8 +415,107 @@ angular.module('main')
 			var currentIndex = buildingWorkout.exercises.indexOf(exercise);
 			buildingWorkout.exercises.splice(toIndex, 0, buildingWorkout.exercises.splice(currentIndex, 1)[0]);
 		};
+		service.save = function () {
+			var workout = newWorkout?
+			workoutSvc.addWorkout(buildingWorkout):
+							workoutSvc.updateWorkout(buildingWorkout);
+			newWorkout = false;
+			return workout;
+		};
+		
 		return service;
 });
+
+angular.module('main').
+				controller('workoutDetailCtrl', 
+function ($scope, workoutBuilderSvc, selectedWorkout, $routeParams){
+	
+	$scope.selected = {};
+	
+	$scope.reset = function (){
+		$scope.workout = 
+						workoutBuilderSvc.startBuilding($routeParams.id);
+		$scope.formWorkout.$setPristine();
+		$scope.submitted = false;
+	}
+	
+	$scope.hasError = function (modelController, error){
+		return (modelController.$dirty || $scope.submitted) && error;
+	}
+	
+	$scope.save = function () {
+		$scope.submitted = true; // will force validations
+		if ($scope.formWorkout.$invalid) return;
+		$scope.workout = workoutBuilderSvc.save();
+		$scope.formWorkout.$setPristine();
+		$scope.submitted = false;
+	};
+	
+	$scope.removeExercise = function (exercise){
+		workoutBuilderSvc.removeExercise(exercise);
+	};
+	
+	$scope.durations = [
+		{title: "15 seconds", value: 15},
+		{title: "30 seconds", value: 30},
+		{title: "45 seconds", value: 45},
+		{title: "1 minute", value: 60},
+		{title: "1 minute 15 seconds", value: 75},
+		{title: "1 minute 30 seconds", value: 90},
+		{title: "1 minute 45 seconds", value: 105}, 
+		{title: "2 minutes", value: 120}, 
+		{title: "2 minutes 15 seconds", value: 135},
+		{title: "2 minutes 30 seconds", value: 150},
+		{title: "2 minutes 45 seconds", value: 165},
+		{title: "3 minutes", value: 180},
+		{title: "3 minutes 15 seconds", value: 195},
+		{title: "3 minutes 30 seconds", value: 210},
+		{title: "3 minutes 45 seconds", value: 225},
+		{title: "4 minutes", value: 240},
+		{title: "4 minutes 15 seconds", value: 255},
+		{title: "4 minutes 30 seconds", value: 270},
+		{title: "4 minutes 45 seconds", value: 285},
+		{title: "5 minutes", value: 300}
+	];
+	
+	$scope.moveExerciseTo = function (exercise, location){
+		workoutBuilderSvc.moveExerciseTo(exercise, location)
+	};
+	
+//	var restWatch = $scope.$watch('formWorkout.restBetweenExercises',
+//	function(newValue){
+//		if (newValue){
+//			newValue.$parsers.unshift(function (value){
+//				return isNaN(parseInt(value)) ? value : parseInt(value);
+//			});
+//			newValue.$formatters.push(function (value) {
+//				return isNaN(parseInt(value))? value: parseInt(value);
+//			});
+//			restWatch(); //de-register the watch after first time.
+//		}
+//	})
+
+	$scope.$watch('formWorkout.exerciseCount', function (newValue){
+		if (newValue) {
+			newValue.$setValidity("count", $scope.workout.exercises.length>0);
+		}
+	});
+	$scope.$watch('workout.exercises.length', function (newValue, oldValue){
+		if (newValue != oldValue){
+				$scope.formWorkout.exerciseCount.$dirty = true;
+				$scope.formWorkout.$setDirty();
+				$scope.formWorkout.exerciseCount.$setValidity("count", newValue > 0);
+			}
+			
+	});
+	
+	var init = function () {
+		$scope.workout = selectedWorkout; // Resolved workout
+	};
+	init();
+	
+});
+
 
 angular.module('main')
 				.controller('workoutListCtrl', function ($scope, $location, workoutSvc){

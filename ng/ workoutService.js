@@ -188,9 +188,26 @@ angular.module('main')
 		service.getWorkout= function (name){
 			var result = null;
 			angular.forEach(service.getWorkouts(), function (workout){
-				if(workout.name === name)	result = workout
+				if(workout.name === name)	result = angular.copy(workout);
 			});
 			return result;
+		};
+		
+		service.updateWorkout = function (workout){
+			for(var i= 0; i < workouts.length; i++){
+				if(workouts[i].name === workout.name){
+					workouts[i] = workout;
+					break;
+				}
+			}
+			return workout;
+		};
+		
+		service.addWorkout = function(workout){
+			if(workout.name){
+				workouts.push(workout);
+				return workout;
+			}
 		};
 		
 		var init = function () {

@@ -27,11 +27,11 @@ placeholder="What would be the workout title?", ng-model="workout.title", ng-min
 				label(for="workout-description") Description: 
 				textarea(name="description", class="form-control", id="workout-description", 
 placeholder="Enter workout description.", ng-model="workout.description")
-			div(class="form-group row", ng-class="{'has-error': formWorkout.restBetweenExercises.$error.number}")
+			div(class="form-group row", ng-class="{'has-error': formWorkout.restBetweenExercise.$error.number}")
 				label(for="workout-rest") Rest Time (in seconds):
-				input(type="number", name="restBetweenExercises", class="form-control", id="workout-rest", 
-placeholder="Rest period between exercise in seconds.", ng-model="workout.restBetweenExercises", min="1", required)
-				div(ng-messages="formWorkout.restBetweenExercises.$error", ng-if="submitted || formWorkout.restBetweenExercises.$dirty")
+				input(type="number", name="restBetweenExercise", class="form-control", id="workout-rest", 
+placeholder="Rest period between exercise in seconds.", ng-model="workout.restBetweenExercise", min="1", required)
+				div(ng-messages="formWorkout.restBetweenExercise.$error", ng-if="submitted || formWorkout.restBetweenExercise.$dirty")
 					label(ng-message="required", class="text-danger") Time duration is required.
 					label(ng-message="number", class="text-danger") Time duration should be numeric.
 					label(ng-message="min", class="text-danger") Only positive integer value allowed.
@@ -41,7 +41,7 @@ placeholder="Rest period between exercise in seconds.", ng-model="workout.restBe
 				p(class="form-control-static badge"){{workout.exercises.length}}
 			div(class="form-group row")
 				label Total Duration:
-				p(class="form-control-static badge"){{workout.totalDuration()|secondsToTime}}
+				p(class="form-control-static badge"){{workout.totalWorkoutDuration()|secondsToTime}}
 			div(class="row")
 				button(class="btn btn-primary pull-right" style="float:left", ng-class="{'btn-default':formWorkout.$valid, 'btn-warning': !formWorkout.$valid}", ng-click="save()" ,
 popover="{{formWorkout.$invalid? 'The form has errors.' : null}}", popover-trigger="mouseenter") Save

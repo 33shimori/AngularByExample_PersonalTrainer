@@ -1,7 +1,12 @@
-angular.module('main').config(function ($routeProvider, workoutSvcProvider){
+angular.module('main')
+				.config(function ($routeProvider, workoutSvcProvider, apikeyAppenderProvider, $httpProvider){
+	
+	apikeyAppenderProvider.setApiKey("cVpLXjl-qYJ4Dfk2nD-ml-1yxU_S41I7");
+	$httpProvider.interceptors.push('apikeyAppender');
 	
 	//IMPORTANT: set the database name and API Key here before running application
-	workoutSvcProvider.configure("angularbyexample", "cVpLXjl-qYJ4Dfk2nD-ml-1yxU_S41I7");
+	workoutSvcProvider.configure("angularbyexample");
+	
 	
 	$routeProvider
 					.when('/builder', {
@@ -31,22 +36,20 @@ angular.module('main').config(function ($routeProvider, workoutSvcProvider){
 									return workoutBuilderSvc.startBuilding();
 							}}
 					})
-					
 					.when('/builder/workouts/:id', {
 						templateUrl: 'workout.jade',
 						controller: 'workoutDetailCtrl',
 						leftNav: 'left-nav-exercises.jade',
 						topNav: 'top-nav.jade',
+						routeErrorMessage: 'could not load the specific workout!',
 						resolve:{
 							selectedWorkout:
-								function ($route, workoutBuilderSvc, $location){
-									var workout = 
-										workoutBuilderSvc.startBuilding($route.current.params.id);
-										if(!workout){
-											$location.path('/builder/workouts');
-										}
-										return workout;
-								}}
+								function ($route, workoutBuilderSvc, $location, $q){
+									return workoutBuilderSvc.startBuilding($route.current.params.id)
+									.then(function (data){ return data;
+									}, function(e){ return $q.reject(e);})
+								}
+							}
 					})
 					.when('/builder/exercises/new', {
 						templateUrl: 'exercise.jade'

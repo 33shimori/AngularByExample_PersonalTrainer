@@ -8,56 +8,20 @@ angular.module('main').provider("workoutSvc", function (){
 					var collectionsUrl = null;
 					var database = null;
 					var apiKey = null;
-					
+						
 					this.configure = function (dbName, key) {
 						database = database;
-						apiKey = key;
 						collectionsUrl = apiUrl + dbName + "/collections";
 					}
-					this.$get = function (workoutPlan, Exercise, $http, $q){
+					this.$get = function (workoutPlan, Exercise, $http, $q, $resource){
 						var service = {};
 						var workouts = [];
 						var exercises = [];
 						
-						service.getExercises = function () {
-							return $http.get(collectionsUrl +"/exercises", { params: { apiKey: apiKey } 
-							}).then(function (response){
-								return response.data.map(function (exercise){
-									return new Exercise(exercise);
-								})
-							});
-						};
-						service.getExercise = function (name) {
-							return $http.get(collectionsUrl + "/exercises/"+name, { params: { apiKey: apiKey} })
-											.then(function(response){
-												return new Exercise(response.data);
-							});
-							};
-						service.updateExercise = function (exercise) {
-							angular.forEach (exercises, function (e, index){
-								if (e.name === exercise.name) {
-									exercies[index] = exercise;
-								}
-							});
-							return exercise;
-						}
-						service.addExercise = function (exercise){
-							if (exercise.name) {
-								exercises.push(exercise);
-								return exercise;
-							}
-						}
-						service.deleteExercise = function (exerciseName){
-							var exerciseIndex;
-							angular.forEach (exercises, function (e, index){
-								if(e.name === exerciseName){
-									exerciseIndex = index;
-								}
-							});
-							if (exerciseIndex >=0) exercises.splice(exerciseIndex, 1);
-						};
+						service.Exercises = $resource(collectionsUrl + "/exercises/:id", {}, { update: { method: 'PUT'}});
+						
 						service.getWorkouts = function () {
-							return $http.get(collectionsUrl + "/workouts", { params: { apiKey: apiKey} })
+							return $http.get(collectionsUrl + "/workouts", {})
 											.then(function (response){
 												return response.data.map(function (workout){
 													return new workoutPlan(workout);
@@ -65,8 +29,8 @@ angular.module('main').provider("workoutSvc", function (){
 							});
 						};
 						service.getWorkout = function (name) {
-							return $q.all([service.getExercises(), $http.get(collectionsUrl + "/workouts/" + name, 
-								{ params: { apiKey: apiKey} })]).then(function(response){
+							return $q.all([service.Exercises.query().$promise, $http.get(collectionsUrl + "/workouts/" + name, 
+								{})]).then(function(response){
 									var allExercises = response[0];
 									var workout = new workoutPlan(response[1].data);
 									angular.forEach(response[1].data.exercises, function (exercise){
@@ -74,7 +38,7 @@ angular.module('main').provider("workoutSvc", function (){
 											return e.name === exercise.name;})[0];
 										});
 										return workout;
-									});
+									}, function (e){ return $q.reject(e);});
 						};
 						service.updateWorkout = function (workout){
 							return service.getWorkout(workout.name)
@@ -85,7 +49,7 @@ angular.module('main').provider("workoutSvc", function (){
 										function(exercise){return { 
 												name: exercise.details.name, 
 												duration: exercise.duration}});
-										return $http.put(collectionsUrl + "/workouts/" + original.name, workoutToSave, { params: {apiKey: apiKey}});
+										return $http.put(collectionsUrl + "/workouts/" + original.name, workoutToSave, {});
 									}
 								})
 								.then(function(response){ return workout;});
@@ -102,12 +66,12 @@ angular.module('main').provider("workoutSvc", function (){
 								});
 								workoutToSave._id = workoutToSave.name;
 								return $http.post(collectionsUrl + "/workouts", workoutToSave,
-								{ params: { apiKey: apiKey }})
+								{})
 												.then(function (response){return workout});
 							}
 						};
 						service.deleteWorkout = function (workoutName){
-								return $http.delete(collectionsUrl + "/workouts/" + workoutName, { params: {apiKey: apiKey} });
+								return $http.delete(collectionsUrl + "/workouts/" + workoutName, {});
 						};
 						
 						return service;

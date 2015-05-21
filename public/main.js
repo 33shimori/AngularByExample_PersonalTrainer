@@ -1,5 +1,5 @@
 'use strict'
-angular.module('main', ['ngRoute', 'ngMessages']);
+angular.module('main', ['ngRoute', 'ngMessages', 'ngResource']);
 
 
 
@@ -13,56 +13,20 @@ angular.module('main').provider("workoutSvc", function (){
 					var collectionsUrl = null;
 					var database = null;
 					var apiKey = null;
-					
+						
 					this.configure = function (dbName, key) {
 						database = database;
-						apiKey = key;
 						collectionsUrl = apiUrl + dbName + "/collections";
 					}
-					this.$get = function (workoutPlan, Exercise, $http, $q){
+					this.$get = function (workoutPlan, Exercise, $http, $q, $resource){
 						var service = {};
 						var workouts = [];
 						var exercises = [];
 						
-						service.getExercises = function () {
-							return $http.get(collectionsUrl +"/exercises", { params: { apiKey: apiKey } 
-							}).then(function (response){
-								return response.data.map(function (exercise){
-									return new Exercise(exercise);
-								})
-							});
-						};
-						service.getExercise = function (name) {
-							return $http.get(collectionsUrl + "/exercises/"+name, { params: { apiKey: apiKey} })
-											.then(function(response){
-												return new Exercise(response.data);
-							});
-							};
-						service.updateExercise = function (exercise) {
-							angular.forEach (exercises, function (e, index){
-								if (e.name === exercise.name) {
-									exercies[index] = exercise;
-								}
-							});
-							return exercise;
-						}
-						service.addExercise = function (exercise){
-							if (exercise.name) {
-								exercises.push(exercise);
-								return exercise;
-							}
-						}
-						service.deleteExercise = function (exerciseName){
-							var exerciseIndex;
-							angular.forEach (exercises, function (e, index){
-								if(e.name === exerciseName){
-									exerciseIndex = index;
-								}
-							});
-							if (exerciseIndex >=0) exercises.splice(exerciseIndex, 1);
-						};
+						service.Exercises = $resource(collectionsUrl + "/exercises/:id", {}, { update: { method: 'PUT'}});
+						
 						service.getWorkouts = function () {
-							return $http.get(collectionsUrl + "/workouts", { params: { apiKey: apiKey} })
+							return $http.get(collectionsUrl + "/workouts", {})
 											.then(function (response){
 												return response.data.map(function (workout){
 													return new workoutPlan(workout);
@@ -70,8 +34,8 @@ angular.module('main').provider("workoutSvc", function (){
 							});
 						};
 						service.getWorkout = function (name) {
-							return $q.all([service.getExercises(), $http.get(collectionsUrl + "/workouts/" + name, 
-								{ params: { apiKey: apiKey} })]).then(function(response){
+							return $q.all([service.Exercises.query().$promise, $http.get(collectionsUrl + "/workouts/" + name, 
+								{})]).then(function(response){
 									var allExercises = response[0];
 									var workout = new workoutPlan(response[1].data);
 									angular.forEach(response[1].data.exercises, function (exercise){
@@ -79,7 +43,7 @@ angular.module('main').provider("workoutSvc", function (){
 											return e.name === exercise.name;})[0];
 										});
 										return workout;
-									});
+									}, function (e){ return $q.reject(e);});
 						};
 						service.updateWorkout = function (workout){
 							return service.getWorkout(workout.name)
@@ -90,7 +54,7 @@ angular.module('main').provider("workoutSvc", function (){
 										function(exercise){return { 
 												name: exercise.details.name, 
 												duration: exercise.duration}});
-										return $http.put(collectionsUrl + "/workouts/" + original.name, workoutToSave, { params: {apiKey: apiKey}});
+										return $http.put(collectionsUrl + "/workouts/" + original.name, workoutToSave, {});
 									}
 								})
 								.then(function(response){ return workout;});
@@ -107,12 +71,12 @@ angular.module('main').provider("workoutSvc", function (){
 								});
 								workoutToSave._id = workoutToSave.name;
 								return $http.post(collectionsUrl + "/workouts", workoutToSave,
-								{ params: { apiKey: apiKey }})
+								{})
 												.then(function (response){return workout});
 							}
 						};
 						service.deleteWorkout = function (workoutName){
-								return $http.delete(collectionsUrl + "/workouts/" + workoutName, { params: {apiKey: apiKey} });
+								return $http.delete(collectionsUrl + "/workouts/" + workoutName, {});
 						};
 						
 						return service;
@@ -120,11 +84,11 @@ angular.module('main').provider("workoutSvc", function (){
 });
 angular.module('main')
 				.controller('exerciseDetailsCtrl', 
-function ($scope, workoutSvc, $routeParams, exerciseBuilderSvc, $location){
+function ($scope, workoutSvc, $routeParams, ExerciseBuilderSvc, $location){
 	$scope.save = function (){
 		$scope.submitted = true; // will force validations
 		if ($scope.formExercise.$invalid) return;
-		$scope.exercise = exerciseBuilderSvc.save();
+		$scope.exercise = ExerciseBuilderSvc.save();
 		$scope.formExercise.$setPristine();
 		$scope.submitted = false;
 	};
@@ -142,12 +106,30 @@ function ($scope, workoutSvc, $routeParams, exerciseBuilderSvc, $location){
 	};
 	var init = function () {
 		// we do not use the resolve property on the route to load exercise as we do it with workout.
-		ExerciseBuildingSvc.startBuilding($routeParams.id).then(function(exercise){
-			$scope.exercise = exercise;
-		});
+			$scope.exercise = exerciseBuilderSvc.startBuilding($routeParams.id);
 	};
 	init();
 });
+angular.module('main')
+				.provider('apikeyAppender', function ()
+{
+	var apiKey = null;
+	this.setApiKey = function (key){
+		apiKey = key;
+	}
+	this.$get = function ($q){
+		return{
+			'request' : function (config){
+				if (apiKey && config && config.url.toLowerCase().indexOf("https://api.mongolab.com") >=0){
+					config.params = config.params || {};
+					config.params.apiKey = apiKey;
+				}
+				return config || $q.when(config);
+			}
+		};
+	};
+})
+
 angular.module('main')
 				.directive('ngConfirm', function () {
 					return {
@@ -170,29 +152,31 @@ angular.module('main')
 	var buildingExercise;
 	var newExercise;
 	service.startBuilding = function (name){
-		var defer = $q.defer();
 		//we are going to edit exercise
 		if (name){
-			workoutSvc.getExercise(name).then(function(exercise){
-				buildingExercise = exercise;
-				newExercise  = true;
-				defer.resolve(buildingExercise);
+				buildingExercise = workoutSvc.Exercises.get({id: name}, function(data){
+				newExercise  = false;
 			});
 		}
 		else{
 			buildingExercise = new Exercise({});
-			defer.resolve(buildingExercise);
 			newExercise = true;
 	}
+	return buildingExercise;
 };
 	service.save = function (){
-		var exercise = newExercise ? workoutSvc.addExercise(buildingExercise) :
-						workoutSvc.updateExercise(buildingExercise);
-		newExercise = false;
-		return exercise;
+			if(!buildingExercise._id)
+				buildingExercise._id = buildingExercise.name;
+			var promise = newExercise ? 
+				workoutSvc.Exercises.save({}, buildingExercise).$promise
+				: buildingExercise.$update({id: buldingExercise.name});
+				return promise.then(function(data){
+					newExercise = false;
+					return buildingExercise;
+				});
 	};
 	service.delete = function (){
-			workoutSvc.deleteExercise(buildingExercise.name);
+			return buildingExercise.$delete({ id: buildingExercise.name });
 	};
 	service.addVideo = function (){
 		buildingExercise.related.videos.push("");
@@ -216,9 +200,7 @@ angular.module('main')
 					};
 									
 					var init = function () {
-						workoutSvc.getExercises().then(function (data){
-							$scope.exercises = data;
-						});
+							$scope.exercises = workoutSvc.Exercises.query();
 					};
 					init();
 });
@@ -229,9 +211,8 @@ angular.module('main')
 						$location.path('/builder/exercies/' + exercise.name);
 					}
 					var init = function (){
-						workoutSvc.getExercises().then(function(data){
-							$scope.exercises = data;
-						});
+							$scope.exercises = workoutSvc.Exercises.query();
+
 					};
 					init();
 });
@@ -293,15 +274,29 @@ angular.module('main')
 angular.module('main')
 				.controller('rootCtrl', function ($scope){
 					$scope.$on('$routeChangeSuccess', function (e, current, previous){
-					$scope.currentRoute= current;	
+						$scope.currentRoute= current;	
+						$scope.routeHasError = false;
 					})
-})
+					$scope.$on('$routeChangeError', function (event, current, previous, error)
+					{
+						if(error.status === 404 && current.originalPath === "/builder/workouts/:id"){
+							$scope.routeHasError = true;
+							$scope.routeError = current.routeErrorMessage;
+						};
+					});
+				
+});
 
 
-angular.module('main').config(function ($routeProvider, workoutSvcProvider){
+angular.module('main')
+				.config(function ($routeProvider, workoutSvcProvider, apikeyAppenderProvider, $httpProvider){
+	
+	apikeyAppenderProvider.setApiKey("cVpLXjl-qYJ4Dfk2nD-ml-1yxU_S41I7");
+	$httpProvider.interceptors.push('apikeyAppender');
 	
 	//IMPORTANT: set the database name and API Key here before running application
-	workoutSvcProvider.configure("angularbyexample", "cVpLXjl-qYJ4Dfk2nD-ml-1yxU_S41I7");
+	workoutSvcProvider.configure("angularbyexample");
+	
 	
 	$routeProvider
 					.when('/builder', {
@@ -331,22 +326,20 @@ angular.module('main').config(function ($routeProvider, workoutSvcProvider){
 									return workoutBuilderSvc.startBuilding();
 							}}
 					})
-					
 					.when('/builder/workouts/:id', {
 						templateUrl: 'workout.jade',
 						controller: 'workoutDetailCtrl',
 						leftNav: 'left-nav-exercises.jade',
 						topNav: 'top-nav.jade',
+						routeErrorMessage: 'could not load the specific workout!',
 						resolve:{
 							selectedWorkout:
-								function ($route, workoutBuilderSvc, $location){
-									var workout = 
-										workoutBuilderSvc.startBuilding($route.current.params.id);
-										if(!workout){
-											$location.path('/builder/workouts');
-										}
-										return workout;
-								}}
+								function ($route, workoutBuilderSvc, $location, $q){
+									return workoutBuilderSvc.startBuilding($route.current.params.id)
+									.then(function (data){ return data;
+									}, function(e){ return $q.reject(e);})
+								}
+							}
 					})
 					.when('/builder/exercises/new', {
 						templateUrl: 'exercise.jade'
@@ -373,9 +366,9 @@ angular.module('main')
 			if (name){
 				workoutSvc.getWorkout(name).then(function (workout){
 					buildingWorkout = workout;
-				newWorkout = false;
-				defer.resolve(buildingWorkout);
-			});
+					newWorkout = false;
+					defer.resolve(buildingWorkout);
+			}, function (e){ defer.resolve( $q.reject(e))});
 		}				
 			else {
 				buildingWorkout = new workoutPlan({});

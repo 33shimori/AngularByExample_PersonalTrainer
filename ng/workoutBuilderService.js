@@ -10,9 +10,9 @@ angular.module('main')
 			if (name){
 				workoutSvc.getWorkout(name).then(function (workout){
 					buildingWorkout = workout;
-				newWorkout = false;
-				defer.resolve(buildingWorkout);
-			});
+					newWorkout = false;
+					defer.resolve(buildingWorkout);
+			}, function (e){ defer.resolve( $q.reject(e))});
 		}				
 			else {
 				buildingWorkout = new workoutPlan({});

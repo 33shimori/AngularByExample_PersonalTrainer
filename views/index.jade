@@ -12,4 +12,5 @@ block content
 			div(class="col-md-2 left-nav-bar", ng-if="currentRoute.leftNav")
 					div(id="left-nav", ng-include="currentRoute.leftNav")
 			div(class="col-md-10 col-md-offset-2")
+				label(ng-if="routeHasError", class="alert alert-danger"){{routeError}}
 				div(id="page-content", ng-view)

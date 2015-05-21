@@ -4,29 +4,31 @@ angular.module('main')
 	var buildingExercise;
 	var newExercise;
 	service.startBuilding = function (name){
-		var defer = $q.defer();
 		//we are going to edit exercise
 		if (name){
-			workoutSvc.getExercise(name).then(function(exercise){
-				buildingExercise = exercise;
-				newExercise  = true;
-				defer.resolve(buildingExercise);
+				buildingExercise = workoutSvc.Exercises.get({id: name}, function(data){
+				newExercise  = false;
 			});
 		}
 		else{
 			buildingExercise = new Exercise({});
-			defer.resolve(buildingExercise);
 			newExercise = true;
 	}
+	return buildingExercise;
 };
 	service.save = function (){
-		var exercise = newExercise ? workoutSvc.addExercise(buildingExercise) :
-						workoutSvc.updateExercise(buildingExercise);
-		newExercise = false;
-		return exercise;
+			if(!buildingExercise._id)
+				buildingExercise._id = buildingExercise.name;
+			var promise = newExercise ? 
+				workoutSvc.Exercises.save({}, buildingExercise).$promise
+				: buildingExercise.$update({id: buldingExercise.name});
+				return promise.then(function(data){
+					newExercise = false;
+					return buildingExercise;
+				});
 	};
 	service.delete = function (){
-			workoutSvc.deleteExercise(buildingExercise.name);
+			return buildingExercise.$delete({ id: buildingExercise.name });
 	};
 	service.addVideo = function (){
 		buildingExercise.related.videos.push("");

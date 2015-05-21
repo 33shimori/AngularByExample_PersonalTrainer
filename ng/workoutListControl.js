@@ -4,7 +4,9 @@ angular.module('main')
 						$location.path('/builder/workouts/' + workout.name);
 					}
 					var init = function (){
-						$scope.workouts = workoutSvc.getWorkouts();
+						workoutSvc.getWorkouts().then(function (data){
+							$scope.workouts = data;
+						})
 					};
 					init();
 });

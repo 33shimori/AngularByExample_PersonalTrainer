@@ -18,9 +18,11 @@ function ($scope, workoutBuilderSvc, selectedWorkout, $routeParams){
 	$scope.save = function () {
 		$scope.submitted = true; // will force validations
 		if ($scope.formWorkout.$invalid) return;
-		$scope.workout = workoutBuilderSvc.save();
+		workoutBuilderSvc.save().then(function (workout){
+		$scope.workout = workout;
 		$scope.formWorkout.$setPristine();
 		$scope.submitted = false;
+	});
 	};
 	
 	$scope.removeExercise = function (exercise){

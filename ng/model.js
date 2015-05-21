@@ -6,7 +6,7 @@ angular.module('main')
 						this.description = args.description;
 						this.image = args.image;
 						this.related = {};
-						this.related.videos = args.videos;
+						this.related.videos = (args.related && args.related.videos) ? args.related.videos: [];
 						this.nameSound = args.nameSound;
 						this.procedure = args.procedure;
 					}
@@ -16,13 +16,13 @@ angular.module('main')
 angular.module('main')
 				.factory('workoutPlan', function (){
 					function WorkoutPlan(args){
-						this.exercises = [];
+						this.exercises = args.exercises || [];
 						this.name = args.name
 						this.title = args.title;
 						this.description = args.description;
-						this.restBetweenExercises = args.restBetweenExercises;
+						this.restBetweenExercises = args.restBetweenExercise;
 					};
-					WorkoutPlan.prototype.totalDuration = function (){
+					WorkoutPlan.prototype.totalWorkoutDuration = function (){
 						if (this.exercises.length == 0) return 0;
 						var total = 0;
 						angular.forEach(this.exercises, function (exercise){

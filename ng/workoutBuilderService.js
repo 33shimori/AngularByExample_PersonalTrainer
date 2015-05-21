@@ -1,20 +1,25 @@
 angular.module('main')
-				.factory("workoutBuilderSvc", function (workoutSvc, workoutPlan){
+				.factory("workoutBuilderSvc", function (workoutSvc, workoutPlan, $q){
 	var service={},
 		buildingWorkout,
 		newWorkout;
 		
 		service.startBuilding = function(name) {
+			var defer = $q.defer();
 			// we are going to edit existing workout
 			if (name){
-				buildingWorkout = workoutSvc.getWorkout(name);
+				workoutSvc.getWorkout(name).then(function (workout){
+					buildingWorkout = workout;
 				newWorkout = false;
-			}
+				defer.resolve(buildingWorkout);
+			});
+		}				
 			else {
 				buildingWorkout = new workoutPlan({});
-				newWorkout = true;
+					defer.resolve(buildingWorkout);
+					newWorkout = true;
 			}
-		return buildingWorkout;
+			return defer.promise;
 		};
 		
 		service.removeExercise = function(exercise){
@@ -30,12 +35,18 @@ angular.module('main')
 			buildingWorkout.exercises.splice(toIndex, 0, buildingWorkout.exercises.splice(currentIndex, 1)[0]);
 		};
 		service.save = function () {
-			var workout = newWorkout?
+			var promise = newWorkout?
 			workoutSvc.addWorkout(buildingWorkout):
 							workoutSvc.updateWorkout(buildingWorkout);
-			newWorkout = false;
-			return workout;
+			promise.then(function (workout){
+				newWorkout = false;
+			});
+			return promise;
 		};
+			service.delete = function (){
+			if (newWorkout) return; // A new workout cannot be deleted.
+			return workoutSvc.deleteWorkout(buildingWorkout.name);
+		}	
 		
 		return service;
 });

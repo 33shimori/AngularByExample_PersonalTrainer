@@ -1,4 +1,8 @@
-angular.module('main').config(function ($routeProvider){
+angular.module('main').config(function ($routeProvider, workoutSvcProvider){
+	
+	//IMPORTANT: set the database name and API Key here before running application
+	workoutSvcProvider.configure("angularbyexample", "cVpLXjl-qYJ4Dfk2nD-ml-1yxU_S41I7");
+	
 	$routeProvider
 					.when('/builder', {
 						redirectTo: '/builder/workouts'})
@@ -22,8 +26,9 @@ angular.module('main').config(function ($routeProvider){
 						leftNav: 'left-nav-exercises.jade',
 						topNav: 'top-nav.jade',
 						resolve:{ 
-							selectedWorkout: function(workoutBuilderSvc){
-								return workoutBuilderSvc.startBuilding();
+							selectedWorkout: 
+								function(workoutBuilderSvc){
+									return workoutBuilderSvc.startBuilding();
 							}}
 					})
 					

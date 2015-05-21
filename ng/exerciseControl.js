@@ -6,7 +6,9 @@ angular.module('main')
 					};
 									
 					var init = function () {
-						$scope.exercises = workoutSvc.getExercises();
+						workoutSvc.getExercises().then(function (data){
+							$scope.exercises = data;
+						});
 					};
 					init();
 });
@@ -17,7 +19,9 @@ angular.module('main')
 						$location.path('/builder/exercies/' + exercise.name);
 					}
 					var init = function (){
-						$scope.exercises = workoutSvc.getExercises();
+						workoutSvc.getExercises().then(function(data){
+							$scope.exercises = data;
+						});
 					};
 					init();
 });

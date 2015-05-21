@@ -1,1 +1,77 @@
-h2 exercise
+div(id="exercise-container")
+	div(class="row")
+		h2(class="col-md-8"){{formExercise.$dirty? '*': ''}}
+			span(ng-show="canDeleteExercise()", class="pull-right glyphicon glyphicon-trash text-danger", 
+title="Delete exercise", ng-confirm="deleteExercise()", ng-confirm-message="Are you sure you want to delte this exercise?")
+	form(class="row", name="formExercise", novalidate)
+		div(id="exercise-data", class="col-md-5")
+			div(class="form-group-row", ng-class="{'has-error':formExercise.exerciseName.$error.required}")
+				label(for="exercise-name") Name:
+				input(type="text", name="exerciseName", class="form-control", id="exercise-name", placeholder="Enter exercise name. Must be unique.", 
+ng-model="exercise.name", ng-pattern="/^[A-Za-z0-9]{1,15}$/", required)
+				label(ng-show="hasError(formExercise.exerciseName, formExercise.exerciseName.$error.required)", 
+ng-class="{'text-danger':formExercise.exerciseName.$error.required}") exercise name is required and it should be unique.
+				label(ng-show="hasError(formExercise.exerciseName, formExercise.exerciseName.$error.pattern)", 
+ng-class="{'text-danger': formExercise.exerciseName.$error.pattern}") Only alpha numeric values are allowed in workout name iwth max length 15.
+			div(class="form-group-row", ng-class="{'has-error':formExercise.title.$error.required}") 
+				label(for="exercise-title") Title:
+				input(type="text", name="title", calss="form-control", id="exercise-title", placeholder="What would be the exercise title?", 
+ng-model="exercise.title", required)
+				label(ng-show="hasError(formExercise.title, formExercise.title.$error.required)", 
+ng-class="{'text-danger':formExercise.title.$error.required}") exercise title is required.
+			div(class="form-group-row")
+				label(for="exercise-description") Description:
+				textarea(name="description", class="form-control", id="exercise-description", placehoder="Enter exercise description.", ng-model="exercise.description")
+			div(class="form-group-row")
+				label(for="exercise-steps") Exercise Steps:
+				textarea(name="steps", class="form-control", id="exercise-steps", placehoder="Enter exercise steps.", ng-model="exercise.procedure")
+			div(class="form-group-row")
+				label(for="name-audio") Exercise Audio:
+				input(type="text", name="audio", class="form-control", id="name-audio", placeholder!="Enter location/url where audio clue for the exercise is stored.", ng-model="exercise.nameSound")
+		div(id="exercise-video", class="col-md-3")
+			div(class="form-group row")
+				img(id="img-preview", ng-src="{{exercise.image ? exercise.image : '/images/running.png'}}", style="width:250px;height:250px;")
+				br/
+				label(for="exercise-image") Exercise Image (Will be scaled to: 540 x 360 px):
+				input(type="text", name="image", class="form-control", id="exercise-image", placeholder="Enter exercise image url.", ng-model="exercise.image")
+			div(class="row")
+				label(for="exercise-videos") Videos:
+				div(ng-repeat="video in exercise.related.videos track by $index")
+					ng-form(name="videoForm")
+						div(class="form-group form-inline", ng-class="{'has-error':videoFrom.relatedVideo.$invalid}")
+							input(name="relatedVideo", class="form-control", ng-model="exercise.related.videos[$index]", placeholder="Add a related youtube video identified.", required)
+							button(ng-click="deleteVideo($index)", title="Delete this video.", class="btn btn-primary")
+								span(class="glyphicon glyphicon-trash text-danger")
+						label(ng-show="hasError(videoFrom.relatedVideo,videoFrom.relatedVideo.$error.require)", 
+ng-class="{'text-danger': videoForm.relatedVideo.$error.required}") Video identifier is required.
+				button(ng-click="addVideo()", class="btn btn-primary") Add Video
+			div(class="row")
+				div
+					button(class="btn pull-right", ng-class="{'btn-default':formExercise.$valid,'btn-warning':!fromExercise.$valid}", ng-click="save()", 
+popover="{{formExercise.$invalid? 'The form has errors.' : null}}", popover-trigger="mouseenter") Save
+					button(class="btn btn-primary pull-right", ng-click="reset()") Reset
+script(type="text/ng-template", id="exercise-exercise-title")
+	div(class="exercise title")
+		div
+			span{{$index}}
+		div
+			img(ng-src="{{exercise.details.image ? exercise.details.image: 'images/running.png'}}", style="width:75px;height:75px")
+			div{{exercise.details.title}}
+			div(title="{{exercise.details.description}}"){{exercise.details.description | limitTo:25}}
+			ng-form(name="formDuration")
+				input(type="number", name="duration", ng-model="exercise.duration", class="from-control", placeholder="Exercise duration in seconds.", min="1", required)
+				label(ng-show="hasError(formDuration.duration,formDuration.duration.$error.required)", ng-class="{'text-danger': formDuration.duration.$error.required}") Time Duration is required.
+				label(ng-show="hasError(formDuration.duration,formDuration.duration.$error.number)", ng-class="{'text-danger':formDuratin.duration.$error.number}") Time duratin should be numeric.
+				label(ng-show="hasError(formDuration.duration,formDuration.duration.$error.min)", ng-class="{'text-danger':formDuration.duration.$error.min}") Time duratation should be more than zero.
+		div
+			button(class="btn btn-danger", ng-click="removeExercise(exercise)")
+				span(class="glyphicon glyphicon-trash")
+			div(id="move-icons")
+				button(class="btn btn-info", ng-click="moveExerciseTo(exercise,0)")
+					span(class="glyphicon glyphicon-chevron-upload")
+				button(class="btn btn-info", ng-click="moveExerciseTo(exercise, $index-1)")
+					span(class="glyphicon glyphicon-chevron-up")
+				button(class="btn btn-info", ng-click="moveExerciseTo(exercise, $index+1)")
+					span(class="glyphicon glyphicon-chevron-down")
+				button(class="btn btn-info", ng-click="moveExerciseTo(exercise, exercise.exercises.length-1)")
+					span(class="glyphicon glyphicon-download")
